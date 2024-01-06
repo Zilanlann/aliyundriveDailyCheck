@@ -11,6 +11,8 @@ const signinURL =
     'https://member.aliyundrive.com/v1/activity/sign_in_list?_rx-s=mobile'
 const rewardURL =
     'https://member.aliyundrive.com/v1/activity/sign_in_reward?_rx-s=mobile'
+const taskRewardURL =
+    'https://member.aliyundrive.com/v2/activity/sign_in_task_reward?_rx-s=mobile'
 
 // 使用 refresh_token 更新 access_token
 function updateAccesssToken(queryBody, remarks) {
@@ -76,7 +78,12 @@ function sign_in(access_token, remarks) {
                 for await (reward of rewards) {
                     const signInDay = reward.day
                     try {
-                        const rewardInfo = await getReward(access_token, signInDay)
+                        let rewardInfo = await getReward(access_token, signInDay)
+                        sendMessage.push(
+                            `第${signInDay}天奖励领取成功: 获得${rewardInfo.name || ''}${rewardInfo.description || ''
+                            }`
+                        )
+                        rewardInfo = await getTaskReward(access_token, signInDay)
                         sendMessage.push(
                             `第${signInDay}天奖励领取成功: 获得${rewardInfo.name || ''}${rewardInfo.description || ''
                             }`
@@ -120,7 +127,24 @@ function getReward(access_token, signInDay) {
             return json.result
         })
 }
+function getTaskReward(access_token, signInDay) {
+    return axios(taskRewardURL, {
+        method: 'POST',
+        data: { signInDay },
+        headers: {
+            authorization: access_token,
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(d => d.data)
+        .then(json => {
+            if (!json.success) {
+                return Promise.reject(json.message)
+            }
 
+            return json.result
+        })
+}
 // 获取环境变量
 async function getRefreshToken() {
     let instance = null
